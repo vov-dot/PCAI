@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>AI Toolkit</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <main>
+    <h1>AI Toolkit</h1>
+
+    <section class="card">
+      <h2>Search prompt</h2>
+      <input id="search-prompt" placeholder="Тема для поиска" />
+      <button id="btn-search-prompt">Создать запрос</button>
+      <pre id="search-result"></pre>
+    </section>
+
+    <section class="card">
+      <h2>Document</h2>
+      <input id="doc-prompt" placeholder="Описание документа" />
+      <button id="btn-document">Создать документ (word)</button>
+      <pre id="doc-result"></pre>
+    </section>
+
+    <section class="card">
+      <h2>Table (Excel)</h2>
+      <input id="table-prompt" placeholder="Тема для таблицы" />
+      <button id="btn-table">Создать таблицу</button>
+      <pre id="table-result"></pre>
+    </section>
+
+    <section class="card">
+      <h2>Gmail</h2>
+      <label>Task:
+        <select id="gmail-task">
+          <option value="late">Кратко (late)</option>
+          <option value="full">Полное (full)</option>
+          <option value="email">Написать письмо (email)</option>
+        </select>
+      </label>
+      <div id="gmail-extra">
+        <input id="gmail-num" type="number" placeholder="Номер письма (для full)" />
+        <input id="gmail-to" placeholder="Email получателя (для email)" />
+        <input id="gmail-subject" placeholder="Тема (для email)" />
+        <input id="gmail-instr" placeholder="Инструкции (для email)" />
+      </div>
+      <button id="btn-gmail">Запустить</button>
+      <pre id="gmail-result"></pre>
+    </section>
+  </main>
+
+  <script src="/static/main.js"></script>
+</body>
+</html>
