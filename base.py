@@ -1,6 +1,5 @@
 import lmstudio as lms
-from web import ddg
-from back import word, exel, gmail
+from back import word, exel, gmail, ddg
 
 model = lms.llm("google/gemma-3-4b")
 
