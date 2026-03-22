@@ -1,56 +1,803 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>AI Toolkit</title>
-  <link rel="stylesheet" href="/static/style.css" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AI Neural Interface</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+  
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js"></script>
+
+  <style>
+    :root {
+      --bg-primary: #f8fafc;
+      --bg-secondary: #ffffff;
+      --bg-card: #ffffff;
+      --text-primary: #334155;
+      --text-secondary: #64748b;
+      --text-muted: #94a3b8;
+      --accent: #6366f1;
+      --accent-soft: rgba(99, 102, 241, 0.08);
+      --accent-hover: #4f46e5;
+      --border: #e2e8f0;
+      --shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+      --shadow-hover: 0 4px 16px rgba(0, 0, 0, 0.08);
+      --radius: 12px;
+      --transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      --success: #10b981;
+      --danger: #ef4444;
+      --warning: #f59e0b;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; outline: none; }
+    
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      line-height: 1.6;
+      padding: 48px 24px;
+      min-height: 100vh;
+    }
+
+    /* === Header === */
+    .header {
+      text-align: center;
+      margin-bottom: 48px;
+      animation: fadeDown 0.6s ease;
+    }
+    .header h1 {
+      font-weight: 600;
+      font-size: 2rem;
+      color: var(--text-primary);
+      letter-spacing: -0.02em;
+      margin-bottom: 8px;
+    }
+    .header .status {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      color: var(--text-secondary);
+      font-size: 0.875rem;
+    }
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      background: #10b981;
+      border-radius: 50%;
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    /* === Grid === */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+      gap: 24px;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    /* === Cards === */
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px;
+      box-shadow: var(--shadow);
+      transition: var(--transition);
+      display: flex;
+      flex-direction: column;
+      animation: fadeUp 0.5s ease backwards;
+    }
+    .card:nth-child(1) { animation-delay: 0.1s; }
+    .card:nth-child(2) { animation-delay: 0.15s; }
+    .card:nth-child(3) { animation-delay: 0.2s; }
+    .card:nth-child(4) { animation-delay: 0.25s; }
+    .card:nth-child(5) { animation-delay: 0.3s; }
+    
+    .card:hover {
+      box-shadow: var(--shadow-hover);
+      transform: translateY(-2px);
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+    }
+    .card-icon {
+      width: 40px;
+      height: 40px;
+      background: var(--accent-soft);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+    }
+    .card-title {
+      font-weight: 500;
+      font-size: 1rem;
+      color: var(--text-primary);
+    }
+
+    /* === Forms === */
+    label {
+      display: block;
+      font-size: 0.8125rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+      margin-bottom: 8px;
+    }
+    
+    input, textarea, select {
+      width: 100%;
+      background: var(--bg-primary);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 11px 14px;
+      font-family: inherit;
+      font-size: 0.9375rem;
+      color: var(--text-primary);
+      transition: var(--transition);
+      resize: vertical;
+    }
+    input:focus, textarea:focus, select:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-soft);
+    }
+    select {
+      cursor: pointer;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2394a3b8'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      background-size: 16px;
+    }
+    select option { background: var(--bg-secondary); }
+
+    .field-group { margin-bottom: 14px; }
+
+    /* === Buttons === */
+    button {
+      padding: 12px 20px;
+      background: var(--accent);
+      color: #ffffff;
+      border: none;
+      border-radius: 8px;
+      font-weight: 500;
+      font-size: 0.9375rem;
+      cursor: pointer;
+      transition: var(--transition);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    button:hover {
+      background: var(--accent-hover);
+      transform: translateY(-1px);
+    }
+    button:active { transform: translateY(0); }
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+    
+    .loader {
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      display: none;
+    }
+    button.loading .loader { display: block; }
+    button.loading .btn-text { display: none; }
+
+    .btn-sm {
+      padding: 6px 12px;
+      font-size: 0.8125rem;
+    }
+    .btn-danger { background: var(--danger); }
+    .btn-danger:hover { background: #dc2626; }
+    .btn-success { background: var(--success); }
+    .btn-success:hover { background: #059669; }
+
+    /* === Dynamic Fields === */
+    .dynamic-fields {
+      overflow: hidden;
+      max-height: 0;
+      opacity: 0;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      margin-top: 0;
+    }
+    .dynamic-fields.active {
+      max-height: 280px;
+      opacity: 1;
+      margin-top: 16px;
+    }
+
+    /* === Results === */
+    .result-box {
+      margin-top: 20px;
+      background: var(--bg-primary);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+      min-height: 70px;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    .result-content {
+      font-size: 0.875rem;
+      line-height: 1.7;
+      color: var(--text-primary);
+      opacity: 0;
+      transform: translateY(8px);
+      transition: all 0.35s ease;
+    }
+    .result-content.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* === To-Do Specific === */
+    .todo-stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .todo-stat {
+      background: var(--bg-primary);
+      padding: 12px;
+      border-radius: 8px;
+      text-align: center;
+      border: 1px solid var(--border);
+    }
+    .todo-stat-value {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: var(--accent);
+    }
+    .todo-stat-label {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+    .todo-list {
+      list-style: none;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+    .todo-item {
+      background: var(--bg-primary);
+      padding: 14px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      margin-bottom: 10px;
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      transition: var(--transition);
+    }
+    .todo-item:hover {
+      box-shadow: var(--shadow);
+    }
+    .todo-item.completed {
+      opacity: 0.6;
+    }
+    .todo-item.completed .todo-title {
+      text-decoration: line-through;
+      color: var(--text-muted);
+    }
+    .todo-checkbox {
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+      margin-top: 2px;
+    }
+    .todo-content { flex: 1; }
+    .todo-title {
+      font-weight: 500;
+      margin-bottom: 4px;
+      font-size: 0.9375rem;
+    }
+    .todo-description {
+      font-size: 0.8125rem;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+    .todo-meta {
+      display: flex;
+      gap: 10px;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+    .priority-badge {
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-weight: 500;
+    }
+    .priority-low { background: #dbeafe; color: #1e40af; }
+    .priority-medium { background: #fef3c7; color: #92400e; }
+    .priority-high { background: #fee2e2; color: #991b1b; }
+    .todo-actions {
+      display: flex;
+      gap: 6px;
+    }
+    .todo-filters {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+    .filter-btn {
+      padding: 6px 14px;
+      background: var(--bg-primary);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.8125rem;
+      transition: var(--transition);
+    }
+    .filter-btn:hover {
+      background: var(--accent-soft);
+    }
+    .filter-btn.active {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+    }
+    .empty-state {
+      text-align: center;
+      padding: 32px;
+      color: var(--text-muted);
+      font-size: 0.875rem;
+    }
+
+    /* === Markdown === */
+    .markdown-output h1, .markdown-output h2, .markdown-output h3 {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin: 16px 0 8px;
+    }
+    .markdown-output p { margin-bottom: 10px; }
+    .markdown-output code {
+      background: var(--bg-primary);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85em;
+      color: #dc2626;
+    }
+    .markdown-output pre {
+      background: #1e293b;
+      color: #e2e8f0;
+      padding: 12px;
+      border-radius: 6px;
+      overflow-x: auto;
+      margin: 10px 0;
+    }
+    .markdown-output pre code {
+      background: transparent;
+      color: inherit;
+      padding: 0;
+    }
+    .markdown-output ul, .markdown-output ol { padding-left: 18px; margin: 10px 0; }
+    .markdown-output li { margin-bottom: 4px; }
+    .markdown-output a { color: var(--accent); text-decoration: none; }
+    .markdown-output a:hover { text-decoration: underline; }
+    .markdown-output blockquote {
+      border-left: 3px solid var(--border);
+      padding-left: 12px;
+      margin: 10px 0;
+      color: var(--text-secondary);
+      font-style: italic;
+    }
+    .markdown-output table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 10px 0;
+    }
+    .markdown-output th, .markdown-output td {
+      border: 1px solid var(--border);
+      padding: 8px 10px;
+      text-align: left;
+      font-size: 0.85rem;
+    }
+    .markdown-output th { background: var(--bg-primary); font-weight: 500; }
+
+    /* === Animations === */
+    @keyframes fadeDown {
+      from { opacity: 0; transform: translateY(-16px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* === Scrollbar === */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg-primary); }
+    ::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 3px;
+    }
+    ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+    /* === Mobile === */
+    @media (max-width: 600px) {
+      body { padding: 24px 16px; }
+      .grid { grid-template-columns: 1fr; }
+      .header h1 { font-size: 1.5rem; }
+      .card { padding: 20px; }
+      .todo-stats { grid-template-columns: 1fr; }
+    }
+  </style>
 </head>
 <body>
-  <main>
-    <h1>AI Toolkit</h1>
 
-    <section class="card">
-      <h2>Search prompt</h2>
-      <input id="search-prompt" placeholder="Тема для поиска" />
-      <button id="btn-search-prompt">Создать запрос</button>
-      <pre id="search-result"></pre>
-    </section>
+  <header class="header">
+    <h1>Neural Assistant</h1>
+    <div class="status">
+      <div class="status-dot"></div>
+      <span>System Online • Gemma-3-4b Active</span>
+    </div>
+  </header>
 
-    <section class="card">
-      <h2>Document</h2>
-      <input id="doc-prompt" placeholder="Описание документа" />
-      <button id="btn-document">Создать документ (word)</button>
-      <pre id="doc-result"></pre>
-    </section>
+  <div class="grid">
 
-    <section class="card">
-      <h2>Table (Excel)</h2>
-      <input id="table-prompt" placeholder="Тема для таблицы" />
-      <button id="btn-table">Создать таблицу</button>
-      <pre id="table-result"></pre>
-    </section>
-
-    <section class="card">
-      <h2>Gmail</h2>
-      <label>Task:
-        <select id="gmail-task">
-          <option value="late">Кратко (late)</option>
-          <option value="full">Полное (full)</option>
-          <option value="email">Написать письмо (email)</option>
-        </select>
-      </label>
-      <div id="gmail-extra">
-        <input id="gmail-num" type="number" placeholder="Номер письма (для full)" />
-        <input id="gmail-to" placeholder="Email получателя (для email)" />
-        <input id="gmail-subject" placeholder="Тема (для email)" />
-        <input id="gmail-instr" placeholder="Инструкции (для email)" />
+    <!-- ==================== TO-DO LIST ==================== -->
+    <div class="card" style="grid-row: span 2;">
+      <div class="card-header">
+        <div class="card-icon">📋</div>
+        <div class="card-title">To-Do List</div>
       </div>
-      <button id="btn-gmail">Запустить</button>
-      <pre id="gmail-result"></pre>
-    </section>
-  </main>
+      
+      <div class="todo-stats">
+        <div class="todo-stat">
+          <div class="todo-stat-value" id="todo-total">0</div>
+          <div class="todo-stat-label">Всего</div>
+        </div>
+        <div class="todo-stat">
+          <div class="todo-stat-value" id="todo-pending">0</div>
+          <div class="todo-stat-label">В процессе</div>
+        </div>
+        <div class="todo-stat">
+          <div class="todo-stat-value" id="todo-completed">0</div>
+          <div class="todo-stat-label">Завершено</div>
+        </div>
+      </div>
 
-  <script src="/static/main.js"></script>
+      <div class="field-group">
+        <input type="text" id="todo-title" placeholder="Название задачи" />
+      </div>
+      <div class="field-group">
+        <textarea id="todo-description" rows="2" placeholder="Описание (опционально)"></textarea>
+      </div>
+      <div class="field-group">
+        <select id="todo-priority">
+          <option value="low">🟢 Низкий приоритет</option>
+          <option value="medium" selected>🟡 Средний приоритет</option>
+          <option value="high">🔴 Высокий приоритет</option>
+        </select>
+      </div>
+      <button onclick="addTodo()" style="margin-bottom: 16px;">
+        <span class="btn-text">➕ Добавить задачу</span>
+        <div class="loader"></div>
+      </button>
+
+      <div class="todo-filters">
+        <button class="filter-btn active" onclick="filterTodo('all')">Все</button>
+        <button class="filter-btn" onclick="filterTodo('pending')">Активные</button>
+        <button class="filter-btn" onclick="filterTodo('completed')">Завершённые</button>
+      </div>
+
+      <ul class="todo-list" id="todo-list"></ul>
+    </div>
+
+    <!-- ==================== DOCUMENT ==================== -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon">📄</div>
+        <div class="card-title">Word Generator</div>
+      </div>
+      <label>Тема документа</label>
+      <textarea id="doc-prompt" rows="3" placeholder="О чем должен быть документ?"></textarea>
+      <button id="btn-document" style="margin-top: 12px;">
+        <span class="btn-text">Создать документ</span>
+        <div class="loader"></div>
+      </button>
+      <div class="result-box">
+        <div id="doc-result" class="result-content markdown-output"></div>
+      </div>
+    </div>
+
+    <!-- ==================== TABLE ==================== -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon">📊</div>
+        <div class="card-title">Excel Builder</div>
+      </div>
+      <label>Описание данных</label>
+      <textarea id="table-prompt" rows="3" placeholder="Какие данные нужно структурировать?"></textarea>
+      <button id="btn-table" style="margin-top: 12px;">
+        <span class="btn-text">Создать таблицу</span>
+        <div class="loader"></div>
+      </button>
+      <div class="result-box">
+        <div id="table-result" class="result-content markdown-output"></div>
+      </div>
+    </div>
+
+    <!-- ==================== GMAIL ==================== -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon">✉️</div>
+        <div class="card-title">Gmail Core</div>
+      </div>
+      <label>Режим работы</label>
+      <select id="gmail-task">
+        <option value="late">📬 Краткий обзор (New)</option>
+        <option value="full">📥 Полный анализ (Deep)</option>
+        <option value="email">✉️ Отправка письма (Compose)</option>
+      </select>
+      <div class="field-group" style="margin-top: 14px;">
+        <label>Контекст / Инструкция</label>
+        <input type="text" id="gmail-prompt" placeholder="Дополнительные параметры...">
+      </div>
+      <div id="gmail-full-fields" class="dynamic-fields">
+        <div class="field-group">
+          <label>Номер письма</label>
+          <input type="number" id="gmail-num" min="1" max="50" value="5">
+        </div>
+      </div>
+      <div id="gmail-email-fields" class="dynamic-fields">
+        <div class="field-group">
+          <label>Получатель</label>
+          <input type="email" id="gmail-to" placeholder="name@example.com">
+        </div>
+        <div class="field-group">
+          <label>Тема</label>
+          <input type="text" id="gmail-subject" placeholder="Заголовок письма">
+        </div>
+        <div class="field-group">
+          <label>Содержание</label>
+          <textarea id="gmail-instr" rows="3" placeholder="О чем написать?"></textarea>
+        </div>
+      </div>
+      <button id="btn-gmail" style="margin-top: 12px;">
+        <span class="btn-text">Выполнить задачу</span>
+        <div class="loader"></div>
+      </button>
+      <div class="result-box">
+        <div id="gmail-result" class="result-content markdown-output"></div>
+      </div>
+    </div>
+
+
+  </div>
+
+  <script>
+    // === API Helper ===
+    async function api(url, method = 'GET', data = null) {
+      const options = {
+        method,
+        headers: { 'Content-Type': 'application/json' }
+      };
+      if (data) options.body = JSON.stringify(data);
+      const res = await fetch(url, options);
+      return await res.json();
+    }
+
+    async function postJSON(url, data) {
+      try {
+        const res = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data),
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return await res.json();
+      } catch (err) {
+        return { result: `⚠️ Connection Error: ${err.message}` };
+      }
+    }
+
+    // === UI Helpers ===
+    function setLoading(btnId, isLoading) {
+      const btn = document.getElementById(btnId);
+      if (isLoading) {
+        btn.classList.add('loading');
+        btn.disabled = true;
+      } else {
+        btn.classList.remove('loading');
+        btn.disabled = false;
+      }
+    }
+
+    function showResult(elementId, text) {
+      const el = document.getElementById(elementId);
+      el.innerHTML = renderMarkdown(text);
+      el.classList.remove('visible');
+      void el.offsetWidth;
+      el.classList.add('visible');
+    }
+
+    function renderMarkdown(text) {
+      if (!text) return '';
+      const raw = marked.parse(text);
+      return typeof DOMPurify !== 'undefined' ? DOMPurify.sanitize(raw) : raw;
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    // === To-Do Functions ===
+    let todoFilter = 'all';
+
+    async function loadTodo() {
+      const data = await api(`/api/todo/tasks?status=${todoFilter}`);
+      renderTodo(data.tasks);
+      updateTodoStats(data.stats);
+    }
+
+    function renderTodo(tasks) {
+      const list = document.getElementById('todo-list');
+      if (tasks.length === 0) {
+        list.innerHTML = '<li class="empty-state">Нет задач</li>';
+        return;
+      }
+      list.innerHTML = tasks.map(task => `
+        <li class="todo-item ${task.completed ? 'completed' : ''}">
+          <input type="checkbox" class="todo-checkbox" 
+            ${task.completed ? 'checked' : ''} 
+            onchange="toggleTodo(${task.id})" />
+          <div class="todo-content">
+            <div class="todo-title">${escapeHtml(task.title)}</div>
+            ${task.description ? `<div class="todo-description">${escapeHtml(task.description)}</div>` : ''}
+            <div class="todo-meta">
+              <span class="priority-badge priority-${task.priority}">${task.priority}</span>
+              <span>📅 ${new Date(task.created_at).toLocaleDateString()}</span>
+            </div>
+          </div>
+          <div class="todo-actions">
+            <button class="btn-sm btn-danger" onclick="deleteTodo(${task.id})">🗑️</button>
+          </div>
+        </li>
+      `).join('');
+    }
+
+    function updateTodoStats(stats) {
+      document.getElementById('todo-total').textContent = stats.total;
+      document.getElementById('todo-pending').textContent = stats.pending;
+      document.getElementById('todo-completed').textContent = stats.completed;
+    }
+
+    async function addTodo() {
+      const title = document.getElementById('todo-title').value.trim();
+      const description = document.getElementById('todo-description').value.trim();
+      const priority = document.getElementById('todo-priority').value;
+      
+      if (!title) return alert('Введите название задачи');
+      
+      const btn = event.target.closest('button');
+      btn.disabled = true;
+      
+      await api('/api/todo/tasks', 'POST', { title, description, priority });
+      document.getElementById('todo-title').value = '';
+      document.getElementById('todo-description').value = '';
+      btn.disabled = false;
+      loadTodo();
+    }
+
+    async function toggleTodo(id) {
+      const task = await api(`/api/todo/tasks/${id}`, 'GET');
+      await api(`/api/todo/tasks/${id}`, 'PUT', { completed: !task.task.completed });
+      loadTodo();
+    }
+
+    async function deleteTodo(id) {
+      if (!confirm('Удалить задачу?')) return;
+      await api(`/api/todo/tasks/${id}`, 'DELETE');
+      loadTodo();
+    }
+
+    function filterTodo(filter) {
+      todoFilter = filter;
+      document.querySelectorAll('.todo-filters .filter-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.textContent.toLowerCase().includes(
+          filter === 'all' ? 'все' : filter === 'pending' ? 'активные' : 'завершённые'
+        ));
+      });
+      loadTodo();
+    }
+
+    // === Gmail Dynamic Fields ===
+    function updateGmailFields() {
+      const task = document.getElementById("gmail-task").value;
+      const fullFields = document.getElementById("gmail-full-fields");
+      const emailFields = document.getElementById("gmail-email-fields");
+      fullFields.classList.remove('active');
+      emailFields.classList.remove('active');
+      if (task === "full") {
+        setTimeout(() => fullFields.classList.add('active'), 10);
+      } else if (task === "email") {
+        setTimeout(() => emailFields.classList.add('active'), 10);
+      }
+    }
+
+    document.getElementById("gmail-task").addEventListener("change", updateGmailFields);
+
+    // === AI Handlers ===
+    document.getElementById("btn-document").addEventListener("click", async () => {
+      const prompt = document.getElementById("doc-prompt").value.trim();
+      if (!prompt) return alert("Введите тему");
+      setLoading("btn-document", true);
+      const r = await postJSON("/api/document", { prompt });
+      showResult("doc-result", r.result);
+      setLoading("btn-document", false);
+    });
+
+    document.getElementById("btn-table").addEventListener("click", async () => {
+      const prompt = document.getElementById("table-prompt").value.trim();
+      if (!prompt) return alert("Введите описание");
+      setLoading("btn-table", true);
+      const r = await postJSON("/api/table", { prompt });
+      showResult("table-result", r.result);
+      setLoading("btn-table", false);
+    });
+
+    document.getElementById("btn-gmail").addEventListener("click", async () => {
+      const g_task = document.getElementById("gmail-task").value;
+      const prompt = document.getElementById("gmail-prompt").value.trim();
+      const extra = {};
+      if (g_task === "full") {
+        extra.num = parseInt(document.getElementById("gmail-num").value || "1", 10);
+      }
+      if (g_task === "email") {
+        extra.to = document.getElementById("gmail-to").value.trim();
+        extra.subject = document.getElementById("gmail-subject").value.trim();
+        extra.instructions = document.getElementById("gmail-instr").value.trim();
+        if (!extra.to || !extra.subject) return alert("Заполните получателя и тему");
+      }
+      setLoading("btn-gmail", true);
+      const r = await postJSON("/api/gmail", { prompt, g_task, extra });
+      showResult("gmail-result", r.result);
+      setLoading("btn-gmail", false);
+    });
+
+    // === Initialize ===
+    document.addEventListener("DOMContentLoaded", () => {
+      updateGmailFields();
+      loadTodo();
+    });
+  </script>
+
 </body>
 </html>
