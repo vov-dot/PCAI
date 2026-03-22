@@ -5,7 +5,7 @@ model = lms.llm("google/gemma-3-4b")
 
 def create_search_response(prompt):
     result = model.respond(
-        f'создай запрос для поисковика для информации на тему {prompt} (не более 30 слов)',
+        f'создай запрос для поисковика для информации на тему {prompt} (не более 30 слов) КРОМЕ САМОГО ЗАПРОСА ТЕКСТА НЕ ДОЛЖНО БЫТЬ',
         config={"temperature": 0.6, "maxTokens": 150},
     )
     print (str(result))
@@ -38,13 +38,13 @@ def table(request_ai):
     exel.text_to_excel(text=str(result))
     return str(result)
 
-def gmail_action(request_ai, g_task, extra=None):
+def gmail_action( g_task, extra=None):
     if extra is None:
         extra = {}
     if g_task == 'late':
         mail_text = gmail.start(task=g_task)
         result = model.respond(
-            f'Очень кратко опиши все письма\n почта: {mail_text}',
+            f'Очень кратко опиши все письма\n почта: {mail_text} отвечай на русском',
             config={"temperature": 0.6, "maxTokens": 10000},
         )
         return str(result)
@@ -52,7 +52,7 @@ def gmail_action(request_ai, g_task, extra=None):
         num = int(extra.get("num", 1))
         mail_text = gmail.start(task=g_task, num=num)
         result = model.respond(
-            f'{request_ai}\n почта: {mail_text}',
+            f'Подробно опиши о чем говорится в письме\n почта: {mail_text} отвечай на русском',
             config={"temperature": 0.6, "maxTokens": 10000},
         )
         return str(result)
@@ -61,7 +61,7 @@ def gmail_action(request_ai, g_task, extra=None):
         subject = extra.get("subject")
         instructions = extra.get("instructions", "")
         result = model.respond(
-            f'напиши письмо для gmail\n тема-{subject} инструкции {instructions}',
+            f'напиши письмо для gmail\n тема-{subject} инструкции {instructions} отвечай на русском',
             config={"temperature": 0.6, "maxTokens": 10000},
         )
         gmail.start(task=g_task, to=to, subject=subject, body=str(result))
