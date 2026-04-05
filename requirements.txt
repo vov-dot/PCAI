@@ -1,0 +1,10 @@
+flask>=2.3.0
+lmstudio>=0.1.0
+google-api-python-client>=2.100.0
+google-auth>=2.23.0
+google-auth-oauthlib>=1.1.0
+google-auth-httplib2>=0.1.1
+duckduckgo-search>=4.1.0
+aiohttp>=3.9.0
+beautifulsoup4>=4.12.0
+lxml>=4.9.0
