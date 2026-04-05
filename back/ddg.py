@@ -1,87 +1,91 @@
 import asyncio
 import aiohttp
 import random
+import re
 from bs4 import BeautifulSoup as bs
 from ddgs import DDGS
 
-
-
 USER_AGENTS = [
-    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-    'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/121.0',
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:125.0) Gecko/20100101 Firefox/125.0',
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Safari/605.1.15'
 ]
 
-
-
-def clean_page_content(html, max_length=300000): 
+def _clean_page(html: str, url: str, max_chars: int = 1500) -> str | None:
     try:
         soup = bs(html, 'lxml')
         
-        for tag in soup(['script', 'style', 'nav', 'footer', 'header', 'aside', 'noscript', 
-                        'meta', 'link', 'img', 'iframe', 'form', 'button', 'input']):
+        for tag in soup(['script', 'style', 'nav', 'footer', 'header', 'aside', 'noscript',
+                         'meta', 'link', 'img', 'iframe', 'form', 'button', 'input', 'svg', 'comment']):
             tag.decompose()
+            
+        main = (soup.find('article') or 
+                soup.find('main') or 
+                soup.find('div', class_=re.compile(r'(post|content|article|entry|main|story)', re.I)) or 
+                soup.find('body'))
+                
+        if not main:
+            return None
+            
+        text = main.get_text(separator='\n', strip=True)
         
-        main_content = soup.find('main') or soup.find('article') or soup.find('div', class_='content')
+        lines = [l.strip() for l in text.split('\n') if len(l.split()) >= 2]
+        text = '\n'.join(lines)
         
-        if main_content:
-            text = main_content.get_text(separator=' ', strip=True)
-        else:
-            text = soup.get_text(separator=' ', strip=True)
-        
-        clean_text = ' '.join(text.split())
-        
-        if len(clean_text) > max_length:
-            clean_text = clean_text[:max_length] + "..."
-            print(f"Текст обрезан с {len(clean_text)} до {max_length} символов")
-        
-        return clean_text
-    except Exception as e:
-        return f"[Ошибка очистки: {e}]"
+        if len(text) < 150:
+            return None
+            
+        if len(text) > max_chars:
+            text = text[:max_chars].rsplit(' ', 1)[0] + "..."
+            
+        return f"[Источник: {url}]\n{text}"
+    except Exception:
+        return None
 
-
-
-async def fetch_page(session, url, timeout=10):
+async def _fetch(session, url: str, timeout: int = 8) -> str | None:
     try:
-        headers = {'User-Agent': random.choice(USER_AGENTS)}
-        await asyncio.sleep(random.uniform(0.5, 1.5))
-        
-        async with session.get(url, headers=headers, timeout=timeout) as response:
-            if response.status == 200:
-                return await response.text()
-    except Exception as e:
-        return f"[Ошибка: {e}]"
+        headers = {'User-Agent': random.choice(USER_AGENTS), 'Accept-Language': 'ru-RU,ru;q=0.9'}
+        async with session.get(url, headers=headers, timeout=timeout, allow_redirects=True) as resp:
+            if resp.status == 200:
+                return await resp.text(encoding='utf-8', errors='ignore')
+    except Exception:
+        return None
 
-
-
-def search(query, max_results=5):
+def search(query: str, max_results: int = 5, max_total_chars: int = 4000) -> str:
     try:
-        search_results = DDGS().text(query, region="ru-ru", max_results=max_results)
-        urls = [r['href'] for r in search_results if 'href' in r]
+        with DDGS() as ddgs:
+            results = list(ddgs.text(query, region="ru-ru", max_results=max_results, safesearch="moderate"))
     except Exception as e:
-        return f"Ошибка поиска: {e}"
-    
-    if not urls:
-        return "Ничего не найдено"
-    
-    print(f" Найдено ссылок: {len(urls)}")
+        return f"❌ Ошибка поиска: {e}"
+        
+    if not results:
+        return "⚠️ Ничего не найдено. Попробуйте переформулировать запрос."
+        
+    urls = [r.get('href') for r in results if r.get('href')]
+    snippets = [f"**{r.get('title', '')}**\n{r.get('body', '')}\n🔗 {r.get('href')}" for r in results]
     
     async def load_all():
-        connector = aiohttp.TCPConnector(limit=5)
-        async with aiohttp.ClientSession(connector=connector) as session:
-            tasks = [fetch_page(session, url) for url in urls]
-            return await asyncio.gather(*tasks)
+        connector = aiohttp.TCPConnector(limit=3)
+        timeout = aiohttp.ClientTimeout(total=12)
+        async with aiohttp.ClientSession(connector=connector, timeout=timeout) as session:
+            tasks = [_fetch(session, url) for url in urls]
+            return await asyncio.gather(*tasks, return_exceptions=True)
+            
+    pages = asyncio.run(load_all())
     
-    html_pages = asyncio.run(load_all())
-    
-    result_parts = []
-    for i, (url, html) in enumerate(zip(urls, html_pages), 1):
-        content = clean_page_content(html)
-        result_parts.append(f"\n--- ИСТОЧНИК {i}: {url} ---\n{content}\n")
-    
-    final_text = '\n'.join(result_parts)
-    if len(final_text) >= 150000:
-        final_text = final_text[:150000]
-    print(f"Загружено: {len(final_text)} символов")
-    
-    return final_text
-
+    contents = []
+    total_len = 0
+    for url, html in zip(urls, pages):
+        if isinstance(html, Exception) or html is None:
+            continue
+        content = _clean_page(html, url)
+        if content:
+            contents.append(content)
+            total_len += len(content)
+            if total_len >= max_total_chars:
+                break
+                
+    if not contents:
+        return "📄 **Сниппеты из поиска:**\n\n" + "\n\n".join(snippets[:3])
+        
+    return "\n\n".join(contents)
