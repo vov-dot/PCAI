@@ -92,8 +92,8 @@ TOOLS = [
     }
 ]
 
-# Маппинг имен инструментов на функции из base.py
-TOOL_FUNCTIONS = {
+# Маппинг имен инструментов на функции из base.py (для внутреннего использования)
+TOOL_FUNCTION_MAP = {
     "search_web": base.web_search,
     "create_google_document": base.create_google_document,
     "create_google_sheet": base.create_google_sheet,
@@ -101,6 +101,53 @@ TOOL_FUNCTIONS = {
     "read_gmail_full": base.get_gmail_full,
     "send_gmail_email": base.send_gmail_email
 }
+
+# Преобразуем схемы TOOLS в формат ToolFunctionDef для lmstudio
+def build_tool_defs():
+    """Создает список ToolFunctionDef из схем TOOLS и функций TOOL_FUNCTION_MAP."""
+    tool_defs = []
+    for tool in TOOLS:
+        func = TOOL_FUNCTION_MAP.get(tool["name"])
+        if func is None:
+            logging.warning(f"Функция для инструмента {tool['name']} не найдена")
+            continue
+        
+        # Преобразуем input_schema в параметры в формате ToolParamDefDict
+        params = {}
+        properties = tool["input_schema"].get("properties", {})
+        required = tool["input_schema"].get("required", [])
+        
+        for param_name, param_def in properties.items():
+            param_type = param_def.get("type", "string")
+            type_map = {
+                "string": str,
+                "integer": int,
+                "number": float,
+                "boolean": bool,
+                "array": list,
+                "object": dict
+            }
+            python_type = type_map.get(param_type, str)
+            
+            # Создаем ToolParamDefDict с правильными полями
+            param_def_dict = lms.json_api.ToolParamDefDict[python_type]()
+            param_def_dict["type"] = python_type
+            param_def_dict["description"] = param_def.get("description", "")
+            if "default" in param_def:
+                param_def_dict["default"] = param_def["default"]
+            
+            params[param_name] = param_def_dict
+        
+        tool_defs.append(lms.ToolFunctionDef(
+            name=tool["name"],
+            description=tool["description"],
+            parameters=params,
+            implementation=func
+        ))
+    
+    return tool_defs
+
+TOOL_DEFS = build_tool_defs()
 
 def execute_tool_call(tool_call):
     """Выполняет инструмент и возвращает результат."""
@@ -123,37 +170,23 @@ def execute_tool_call(tool_call):
 def run_tool_loop(user_message: str, history: str = "", max_turns: int = 6) -> str:
     """Автоматический цикл: LLM → Выбор инструмента → Выполнение → Возврат ответа."""
     # Формируем начальное сообщение
-    messages = [{"role": "user", "content": user_message}]
+    chat = lms.Chat()
+    chat.add_user_message(user_message)
     if history.strip():
-        messages.insert(0, {"role": "system", "content": f"Предыдущий диалог:\n{history.strip()}"})
+        chat.add_system_prompt(f"Предыдущий диалог:\n{history.strip()}")
         
-    for _ in range(max_turns):
-        try:
-            model = get_model()
-            response = model.respond(messages, tools=TOOLS, config={"temperature": 0.7})
-        except Exception as e:
-            return f"❌ Ошибка подключения к LLM: {str(e)}"
-            
-        # Проверяем, запросила ли модель инструмент
-        if hasattr(response, 'tool_calls') and response.tool_calls:
-            # Сохраняем сообщение с запросом инструмента
-            messages.append(response.message)
-            
-            for tool_call in response.tool_calls:
-                logging.info(f"🛠️ Вызов: {tool_call.function.name}")
-                result = execute_tool_call(tool_call)
-                
-                # Возвращаем результат в контекст
-                messages.append({
-                    "role": "tool",
-                    "tool_call_id": tool_call.id,
-                    "content": result
-                })
-        else:
-            # Модель вернула финальный текстовый ответ
-            return str(response.text if hasattr(response, 'text') else response)
-            
-    return "⚠️ Достигнут лимит шагов выполнения инструментов. Попробуйте переформулировать запрос."
+    try:
+        model = get_model()
+        # Используем метод act() для работы с инструментами
+        result = model.act(
+            chat,
+            tools=TOOL_DEFS,  # Передаем ToolFunctionDef объекты
+            max_prediction_rounds=max_turns,
+            config={"temperature": 0.7}
+        )
+        return str(result.response.text if hasattr(result.response, 'text') else result.response)
+    except Exception as e:
+        return f"❌ Ошибка подключения к LLM: {str(e)}"
 
 @app.route("/")
 def index():

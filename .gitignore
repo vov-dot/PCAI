@@ -1,34 +1,41 @@
 ```
-# Python
+# Dependencies
+venv/
+.venv/
 __pycache__/
 *.pyc
-*.pyo
-*.pyd
+.pytest_cache/
+.mypy_cache/
 
-# Logs
-*.log
-server.log
+# Build/dist outputs
+build/
+dist/
+*.egg-info/
 
-# Environment
+# Environment files
 .env
 .env.local
 *.env.*
 
-# Dependencies
-.venv/
-venv/
-node_modules/
+# Logs
+*.log
 
-# Editors
-.vscode/
-.idea/
-
-# Build artifacts
-dist/
-build/
-target/
-
-# OS
+# OS files
 .DS_Store
 Thumbs.db
+
+# Editor/IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*.tmp
+
+# Coverage
+coverage/
+htmlcov/
+.coverage
+
+# Output files from the application
+lmstudio-agent/output/
 ```

@@ -1,0 +1,12 @@
+{
+    "lmstudio": {
+        "base_url": "http://localhost:1234",
+        "model_id": null
+    },
+    "email": {
+        "smtp_server": "smtp.example.com",
+        "smtp_port": 587,
+        "username": "",
+        "password": ""
+    }
+}
