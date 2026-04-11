@@ -13,8 +13,16 @@ import base
 app = Flask(__name__, static_folder="static", template_folder="templates")
 logging.basicConfig(level=logging.INFO)
 
-# Инициализация модели (убедитесь, что LM Studio запущен и модель загружена)
-model = lms.llm("google/gemma-3-4b")
+# Инициализация модели будет выполнена при первом запросе
+_model = None
+_model_name = "google/gemma-3-4b"
+
+def get_model():
+    """Ленивая инициализация модели."""
+    global _model
+    if _model is None:
+        _model = lms.llm(_model_name)
+    return _model
 
 # 📜 Схемы инструментов для LLM (идентичны MCP-схеме)
 TOOLS = [
@@ -121,6 +129,7 @@ def run_tool_loop(user_message: str, history: str = "", max_turns: int = 6) -> s
         
     for _ in range(max_turns):
         try:
+            model = get_model()
             response = model.respond(messages, tools=TOOLS, config={"temperature": 0.7})
         except Exception as e:
             return f"❌ Ошибка подключения к LLM: {str(e)}"
@@ -170,8 +179,4 @@ def api_chat():
 
 if __name__ == "__main__":
     print("🚀 Запуск веб-интерфейса на http://127.0.0.1:5000")
-    app.run(debug=True, host="127.0.0.1", port=5000)
-
-if __name__ == "__main__":
-    print("🚀 Запуск сервера на http://127.0.0.1:5000")
     app.run(debug=True, host="127.0.0.1", port=5000)
